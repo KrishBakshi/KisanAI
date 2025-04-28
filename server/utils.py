@@ -53,7 +53,39 @@ def potato_pred(image):
     response = class_name
     return response
 
-def generate_response(user_text, image = None, history=[]):
+def tomato_pred(image):
+    class_labels = ['Tomato_Bacterial_spot', 'Tomato_Early_blight', 'Tomato_Late_blight', 
+                    'Tomato_Leaf_Mold', 'Tomato_Septoria_leaf_spot', 
+                    'Tomato_Spider_mites_Two_spotted_spider_mite', 
+                    'Tomato__Target_Spot', 'Tomato__Tomato_YellowLeaf__Curl_Virus', 
+                    'Tomato__Tomato_mosaic_virus', 'Tomato_healthy']
+    
+    model = efficientnet_b0(pretrained=False, num_classes=len(class_labels))  
+
+    # Resolve the model path regardless of where app is run from
+    MODEL_PATH = os.path.join(
+        os.path.dirname(__file__), "artifacts", "tomato_efficientnet_model.pth"
+    )
+
+    state_dict = torch.load(MODEL_PATH, map_location=DEVICE)
+    model.load_state_dict(state_dict)
+
+    # Move the model to the correct device
+    model = model.to(DEVICE)
+    model.eval()  # Set the model to evaluation mode
+
+    img_tensor = input_transform()(image).unsqueeze(0).to(DEVICE)
+
+    with torch.no_grad():
+        outputs = model(img_tensor)
+        _, predicted = torch.max(outputs, 1)
+        class_name = class_labels[predicted.item()]
+
+    # ✅ Properly initialize and return response
+    response = class_name
+    return response
+
+def generate_response(class_pred, user_text, image = None, history=[]):
 
     prompt = f"You are a helpful AI assistant for farmers."
 
@@ -61,10 +93,13 @@ def generate_response(user_text, image = None, history=[]):
 
     prompt += f"\n\nUser said: {user_text}"
 
-    if image:
+    if image and class_pred =='Potato':
         image_prediction = potato_pred(image)
         user_text += f"\n\nModel prediction: {image_prediction}"
     
+    elif image and class_pred =='Tomato':
+        image_prediction = tomato_pred(image)
+        user_text += f"\n\nModel prediction: {image_prediction}"
     # Convert old messages
     conversation = [
         {"role": item["role"], "parts": [{"text": item["parts"]}]}

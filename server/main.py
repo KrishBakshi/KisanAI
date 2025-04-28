@@ -1,3 +1,4 @@
+import httpx
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
@@ -5,6 +6,7 @@ import io
 from pydantic import BaseModel
 import uvicorn
 import utils
+import json
 
 app = FastAPI()
 
@@ -29,7 +31,6 @@ async def predict(
     try:
         parsed_history = []
         if history:
-            import json
             parsed_history = json.loads(history)
 
         print(f"Received text: {text}")
@@ -42,7 +43,27 @@ async def predict(
             image_bytes = await file.read()
             image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
-        return utils.generate_response(text, image=image, history=parsed_history)
+            # Convert the image to bytes for sending to App 2
+            image_buffer = io.BytesIO()
+            image.save(image_buffer, format="JPEG")
+            image_buffer.seek(0)
+
+         # Send the image to App 2
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    "http://127.0.0.1:8001/predict/",  # App 2's URL
+                    files={"image": ("image.jpg", image_buffer, "image/jpeg")}
+                )
+
+                # Parse the response from App 2
+                if response.status_code == 200:
+                    class_pred = response.json()
+                    pred_class = class_pred.get("prediction")
+                else:
+                    print("Error from App 2:", response.text)
+                    pred_class = None
+
+        return utils.generate_response(pred_class, text, image=image, history=parsed_history)
 
     except Exception as e:
         print("ERROR:", str(e))

@@ -1,0 +1,11 @@
+fastapi
+torch
+torchvision
+google-genai
+numpy
+pandas
+pillow
+io
+unicorn
+os
+httpx

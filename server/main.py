@@ -37,6 +37,7 @@ async def predict(
         text_response = f"You said: {text}"
 
         image = None
+        pred_class = None  # Ensure pred_class is always defined
 
         if file:
             print("File received:", file.filename)
@@ -48,7 +49,7 @@ async def predict(
             image.save(image_buffer, format="JPEG")
             image_buffer.seek(0)
 
-         # Send the image to App 2
+            # Send the image to App 2
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     "http://127.0.0.1:8001/predict/",  # App 2's URL

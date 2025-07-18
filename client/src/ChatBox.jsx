@@ -49,7 +49,7 @@ export default function ChatBox() {
       formData.append("text", msg);
       if (file) formData.append("file", file);
 
-      const res = await fetch("http://34.93.229.153:8000/predict", {
+      const res = await fetch("http://127.0.0.1:8000/predict/", {
         method: "POST",
         body: formData,
       });
